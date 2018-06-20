@@ -1,76 +1,140 @@
-var expenseLine = "add 2017-04-25 12.44 USD Jogurt";
+//var expenseLine = "add 2017-04-26 12.44 USD Jogurt";
+//var expenseLine = "list";
+//var expenseLine = "clear 2017-04-26";
 const request = require('request');
 const lodash = require('lodash');
-const fetch = require("node-fetch");
 
+const low = require('lowdb')
+const FileSync = require('lowdb/adapters/FileSync')
+
+const adapter = new FileSync('db.json')
+const db = low(adapter)
 
 const fixerioApiKey = '9aab6cdc0dcaf562e2d85630d46d8501'
-var parsedExpense = [];
 
-
-expenseLine.split(" ").map(res => {
-    parsedExpense.push(res);
+var currencies;
+getCurrency().then(function (curr) {
+    currencies = curr;
 })
 
-var command;
-if (parsedExpense.length > 0) {
-    command = parsedExpense[0];
-} else exit(0);
+db.defaults({expenses: []})
+    .write()
 
-switch (command) {
-    case "add":
-        checkAddLine(parsedExpense).then(function (res) {
-            if (res) {
-                console.log('all ok');
-                addExpense(parsedExpense);
-            }
-        })
-        break;
-    case "list":
-        checkListLine(parsedExpense).then(function (res) {
-            if (res) {
-                console.log('all ok')
-                listAllExpense(parsedExpense);
-            }
-        })
-        break;
-    case "clear":
-        checkClearLine(parsedExpense).then(function (res) {
-            if (res) {
-                console.log('all ok');
-                clearExpense(parsedExpense)
-            }
-        })
-        break;
-    case "total":
-        checkTotalLine(parsedExpense).then(function (res) {
-            if (res) {
-                console.log('all ok')
-                totalExpense(parsedExpense);
-            }
-        })
-        break;
-    default:
-        console.log('Incorrect command line');
-        break;
+var stdin = process.openStdin();
+
+
+console.log('***********************************');
+console.log('********Commands Example***********');
+console.log('* add 2017-04-26 12.44 USD Jogurt *');
+console.log('* clear 2017-04-26 ****************');
+console.log('* list ****************************');
+console.log('* total EUR ***********************');
+console.log('***********************************');
+
+
+stdin.addListener("data", function (d) {
+    // note:  d is an object, and when converted to a string it will
+    // end with a linefeed.  so we (rather crudely) account for that
+    // with toString() and then trim()
+    console.log("you entered: [" +
+        d.toString().trim() + "]");
+    parseLine(d.toString().trim())
+});
+
+
+function parseLine(expenseLine) {
+    var parsedExpense = [];
+    expenseLine.split(" ").map(res => {
+        parsedExpense.push(res);
+    })
+
+    var command;
+    if (parsedExpense.length > 0) {
+        command = parsedExpense[0];
+    } else exit(0);
+
+    switch (command) {
+        case "add":
+            checkAddLine(parsedExpense).then(function (res) {
+                if (res) {
+                    console.log('all ok');
+                    addExpense(parsedExpense);
+                }
+            })
+            break;
+        case "list":
+            checkListLine(parsedExpense).then(function (res) {
+                if (res) {
+                    console.log('all ok')
+                    listAllExpense(parsedExpense);
+                }
+            })
+            break;
+        case "clear":
+            checkClearLine(parsedExpense).then(function (res) {
+                if (res) {
+                    console.log('all ok');
+                    clearExpense(parsedExpense)
+                }
+            })
+            break;
+        case "total":
+            checkTotalLine(parsedExpense).then(function (res) {
+                if (res) {
+                    console.log('all ok')
+                    totalExpense(parsedExpense);
+                }
+            })
+            break;
+        default:
+            console.log('Incorrect command line');
+            break;
+    }
 }
 
 
 //Run commands
-function addExpense() {
-
+function addExpense(expense) {
+    const exp = db.get('expenses')
+        .push({
+            date: expense[1],
+            amount: expense[2],
+            currency: expense[3],
+            name: expense[4]
+        })
+        .write()
+    console.log(exp);
 }
 
-function clearExpense() {
-
+function clearExpense(expense) {
+    const exp = db.get('expenses')
+        .remove({date: expense[1]})
+        .write()
+    console.log(exp)
 }
 
-function totalExpense(currency) {
+function totalExpense(expense) {
+    let total = 0;
+    console.log('Currency', expense[1]);
+    db.get('expenses')
+        .value()
+        .map(exp => {
+            //console.log(exp)
+            if (exp.currency.indexOf(expense[1]) > -1) {
+                total += parseFloat(exp.amount);
+                // console.log(total)
+            } else {
+                total += convertCurrency(exp.currency, expense[1], exp.amount);
+            }
 
+        });
+    console.log(Number(total.toFixed(2)));
 }
 
 function listAllExpense() {
-
+    const exp = db.get('expenses')
+        .value()
+    console.log(exp)
 }
 
 
@@ -120,7 +184,7 @@ function checkTotalLine(expense) {
         if (expense.length !== 2) {
             console.log('Wrong parameters number')
             reject;
-        } else checkCurrency(expense[3]).then(function (res) {
+        } else checkCurrency(expense[1]).then(function (res) {
             if (res) {
                 resolve(true);
             } else reject;
@@ -141,20 +205,13 @@ function checkDate(dateStr) {
 
 function checkCurrency(currencyStr) {
     return new Promise(function (resolve, reject) {
-        request('http://data.fixer.io/api/latest?access_key=' + fixerioApiKey, {json: true}, (err, res, body) => {
-            if (err) {
-                resolve(false);
-            }
-            else {
-                if (lodash.has(body.rates, currencyStr)) {
-                    console.log('We have that currency');
-                    resolve(true);
-                } else {
-                    console.log("We don't have that currency");
-                    resolve(false);
-                }
-            }
-        });
+        if (lodash.has(currencies, currencyStr)) {
+            console.log('We have that currency');
+            resolve(true);
+        } else {
+            console.log("We don't have that currency");
+            resolve(false);
+        }
     });
 }
 
@@ -166,5 +223,22 @@ function checkAmount(amountStr) {
 }
 
 
+//External resource
+function getCurrency() {
+    return new Promise(function (resolve, reject) {
+        request('http://data.fixer.io/api/latest?access_key=' + fixerioApiKey, {json: true}, (err, res, body) => {
+            if (err) {
+                reject;
+            }
+            else {
+                resolve(body.rates)
+            }
+        });
+    });
+}
+
+function convertCurrency(from, to, amount) {
+    return (amount / currencies[from] * currencies[to]);
+}
 
 
