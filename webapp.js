@@ -1,25 +1,13 @@
-const {detect} = require('detect-browser');
+
 const lineChecker = require('./lineChecker');
 const db = require('./db');
 
 
-checkBrowser();
-showHelpBanner();
-startConsole();
+/*showHelpBanner();
+startConsole();*/
+console.log('WebApp')
 
 
-function checkBrowser() {
-    const browser = detect();
-    if (browser) {
-        console.log(browser.name);
-        console.log(browser.version);
-        console.log(browser.os);
-    }
-
-    if (browser.name.indexOf('node') > -1) {
-        return false;
-    } else return true;
-}
 
 function showHelpBanner() {
     console.log('***********************************');
@@ -31,13 +19,14 @@ function showHelpBanner() {
     console.log('***********************************');
 }
 
-function startConsole() {
+function  startConsole() {
     var stdin = process.openStdin();
     stdin.addListener("data", function (line) {
         console.log('_______________________');
         parseLine(line.toString().trim())
     });
 }
+
 
 
 function parseLine(expenseLine) {
@@ -87,7 +76,9 @@ function parseLine(expenseLine) {
 }
 
 
+
 //Check params
+
 
 
 //External resource
