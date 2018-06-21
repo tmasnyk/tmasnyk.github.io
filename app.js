@@ -1,8 +1,3 @@
-//var expenseLine = "add 2017-04-26 12.44 USD Jogurt";
-//var expenseLine = "list";
-//var expenseLine = "clear 2017-04-26";
-
-
 
 const lineChecker = require('./lineChecker');
 const db = require('./db');

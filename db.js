@@ -15,7 +15,7 @@ function addExpense(expense) {
         .push({
             date: expense[1],
             amount: expense[2],
-            currency: expense[3],
+            currency: expense[3].toUpperCase(),
             name: expense[4]
         })
         .write()

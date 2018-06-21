@@ -13,7 +13,7 @@ function checkAddLine(expense) {
         } else if (!paramsChecker.checkAmount(expense[2])) {
             console.log('Amount problem')
             reject;
-        } else currencies.checkCurrency(expense[3]).then(function (res) {
+        } else currencies.checkCurrency(expense[3].toUpperCase()).then(function (res) {
             if (res) {
                 resolve(true);
             } else reject;
@@ -47,7 +47,7 @@ function checkTotalLine(expense) {
         if (expense.length !== 2) {
             console.log('Wrong parameters number')
             reject;
-        } else currencies.checkCurrency(expense[1]).then(function (res) {
+        } else currencies.checkCurrency(expense[1].toUpperCase()).then(function (res) {
             if (res) {
                 resolve(true);
             } else reject;
